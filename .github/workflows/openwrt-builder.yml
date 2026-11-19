@@ -30,6 +30,7 @@ env:
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
+  CCACHE_COMPRESS: 1
   TZ: Asia/Shanghai
 
 jobs:
@@ -71,12 +72,34 @@ jobs:
         sudo -E apt-get -y clean
         df -hT
 
+    - name: Restore ccache
+      uses: actions/cache@v4
+      with:
+        path: ~/.ccache
+        key: ccache-${{ runner.os }}-${{ github.run_id }}
+        restore-keys: |
+          ccache-${{ runner.os }}-
+
+    - name: Configure ccache
+      run: |
+        ccache -M 4G
+        ccache -z
+        ccache -s
+
     - name: Clone source code
       working-directory: /workdir
       run: |
         df -hT $PWD
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
+
+    - name: Restore download cache
+      uses: actions/cache@v4
+      with:
+        path: /workdir/openwrt/dl
+        key: dl-${{ runner.os }}-${{ github.run_id }}
+        restore-keys: |
+          dl-${{ runner.os }}-
 
     - name: Load custom feeds
       run: |
