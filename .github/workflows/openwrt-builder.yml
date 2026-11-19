@@ -16,6 +16,10 @@ on:
   repository_dispatch:
   workflow_dispatch:
 
+permissions:
+  contents: write
+  actions: write
+
 env:
   REPO_URL: https://github.com/openwrt/openwrt
   REPO_BRANCH: main
@@ -83,7 +87,7 @@ jobs:
       run: |
         cd openwrt
         make defconfig
-        make download -j8
+        make download -j8 || make download -j1 || true
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
