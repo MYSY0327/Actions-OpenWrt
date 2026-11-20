@@ -10,9 +10,6 @@
 # See /LICENSE for more information.
 #
 
-# luci feed 自带 luci-theme-argon，移除以避免与 package/ 下的上游版本重名冲突
-rm -rf package/feeds/luci/luci-theme-argon
-
 # Modify default IP
 #sed -i 's/192.168.1.1/192.168.50.5/g' package/base-files/files/bin/config_generate
 
