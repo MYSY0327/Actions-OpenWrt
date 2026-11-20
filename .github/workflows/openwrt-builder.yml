@@ -112,6 +112,14 @@ jobs:
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
+    - name: Link host upx
+      working-directory: /workdir/openwrt
+      run: |
+        mkdir -p staging_dir/host/bin
+        rm -f staging_dir/host/bin/upx
+        ln -s /usr/bin/upx staging_dir/host/bin/upx
+        ls -l staging_dir/host/bin/upx
+
     - name: Restore download cache
       uses: actions/cache@v6
       with:
