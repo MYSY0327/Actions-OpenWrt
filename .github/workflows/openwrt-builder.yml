@@ -128,6 +128,9 @@ jobs:
         restore-keys: |
           dl-${{ runner.os }}-
 
+    - name: Reset Go module cache
+      run: rm -rf /workdir/openwrt/dl/go-mod-cache
+
     - name: Load custom feeds
       run: |
         [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
