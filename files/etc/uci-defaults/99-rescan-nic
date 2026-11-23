@@ -1,0 +1,6 @@
+#!/bin/sh
+# First-boot NIC auto-detection (istoreos style):
+# single NIC -> LAN(dhcp); otherwise eth0 -> WAN, others -> LAN
+chmod +x /usr/libexec/rescan_nic.sh
+[ -e /bin/rescan_nic ] || ln -sf /usr/libexec/rescan_nic.sh /bin/rescan_nic
+/usr/libexec/rescan_nic.sh -k
