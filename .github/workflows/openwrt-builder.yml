@@ -219,7 +219,47 @@ jobs:
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       run: |
         echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
-        touch release.txt
+
+        # 从 openwrt/.config 读取默认 IP
+        DEFAULT_IP=$(grep '^CONFIG_TARGET_PREINIT_IP=' openwrt/.config | sed 's/.*="\(.*\)"/\1/')
+        echo "::info::Default IP from .config: $DEFAULT_IP"
+
+        # 收集启用的 luci-app 包（过滤掉 _INCLUDE_ 子选项）
+        LUCI_APPS=$(grep '^CONFIG_PACKAGE_luci-app-' openwrt/.config \
+          | grep '=y$' \
+          | grep -v '_INCLUDE_' \
+          | sed 's/CONFIG_PACKAGE_//' \
+          | sed 's/=y//' \
+          | sort)
+
+        APP_COUNT=$(echo "$LUCI_APPS" | wc -l)
+        echo "::info::Enabled luci-app count: $APP_COUNT"
+
+        # 生成 Release body（用 printf 避免 YAML heredoc 嵌套问题）
+        {
+          printf '%s\n' '### 默认登录'
+          printf '%s\n' '| 项目 | 值 |'
+          printf '%s\n' '|---|---|'
+          printf '%s\n' "| IP | \`$DEFAULT_IP\` |"
+          printf '%s\n' '| 用户名 | root |'
+          printf '%s\n' '| 密码 | 空 |'
+          printf '\n'
+          printf '%s\n' '### 构建信息'
+          printf '%s\n' '| 项目 | 值 |'
+          printf '%s\n' '|---|---|'
+          printf '%s\n' '| 源码 | openwrt main |'
+          printf '%s\n' '| 内核 | 6.18 |'
+          printf '%s\n' '| 目标 | x86_64 DEVICE_generic |'
+          printf '%s\n' "| 时间 | $(date '+%Y-%m-%d %H:%M:%S') |"
+          printf '\n'
+          printf '%s\n' "### LuCI 应用 ($APP_COUNT)"
+          printf '%s\n' '```'
+          printf '%s\n' "$LUCI_APPS"
+          printf '%s\n' '```'
+        } > release.txt
+        echo "==== Release body ===="
+        cat release.txt
+        echo "======================"
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release
@@ -230,7 +270,7 @@ jobs:
       with:
         tag_name: ${{ steps.tag.outputs.release_tag }}
         body_path: release.txt
-        files: ${{ env.FIRMWARE }}/*
+        files: ${{ env.FIRMWARE }}/*squashfs-combined-efi*.img.gz
 
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@main
