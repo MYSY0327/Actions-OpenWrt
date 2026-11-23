@@ -87,15 +87,30 @@ jobs:
         npm install -g pnpm
         pnpm --version
 
-    - name: Get cache key
-      id: cache_key
-      run: echo "date=$(date +%Y-%m-%d)" >> $GITHUB_OUTPUT
+    - name: Clean old caches
+      if: (!cancelled())
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # 只保留当前构建用的两套缓存 key，其余全部删除
+        KEEP_KEYS=("ccache-${{ runner.os }}-openwrt-main" "dl-${{ runner.os }}-openwrt-main")
+        gh cache list --limit 100 --json key --jq '.[].key' \
+        | while read -r key; do
+            keep=false
+            for k in "${KEEP_KEYS[@]}"; do
+              [ "$key" = "$k" ] && keep=true && break
+            done
+            if [ "$keep" = false ]; then
+              echo "::warning::Deleting stale cache: $key"
+              gh cache delete "$key" --confirm
+            fi
+          done
 
     - name: Restore ccache
       uses: actions/cache@v6
       with:
         path: ~/.ccache
-        key: ccache-${{ runner.os }}-${{ steps.cache_key.outputs.date }}
+        key: ccache-${{ runner.os }}-openwrt-main
         restore-keys: |
           ccache-${{ runner.os }}-
 
@@ -124,7 +139,7 @@ jobs:
       uses: actions/cache@v6
       with:
         path: /workdir/openwrt/dl
-        key: dl-${{ runner.os }}-${{ steps.cache_key.outputs.date }}
+        key: dl-${{ runner.os }}-openwrt-main
         restore-keys: |
           dl-${{ runner.os }}-
 
